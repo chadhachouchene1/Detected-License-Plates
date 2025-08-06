@@ -9,6 +9,17 @@ const PlateTable = () => {
   const [sortOrder, setSortOrder] = useState('asc');
   const [selectedPlates, setSelectedPlates] = useState([]);
 
+  // Button style with animation
+  const animatedButtonStyle = {
+    background: '#007bff',
+    color: 'white',
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    transition: 'transform 0.1s ease-in-out',
+  };
+
   const fetchPlates = () => {
     axios.get('http://localhost:5000/api/plates')
       .then(res => setPlates(res.data))
@@ -16,8 +27,14 @@ const PlateTable = () => {
   };
 
   useEffect(() => {
-    fetchPlates();
-  }, []);
+  fetchPlates(); // initial load
+
+  const interval = setInterval(() => {
+    fetchPlates(); // fetch every 5 seconds
+  }, 5000); // 5000ms = 5 seconds
+
+  return () => clearInterval(interval); // clean up on unmount
+}, []);
 
   const toggleSortOrder = () => {
     setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
@@ -99,6 +116,22 @@ const PlateTable = () => {
     }
   };
 
+  // ✅ SEND EMAIL FUNCTION
+  const handleSendEmail = async () => {
+    if (selectedPlates.length === 0) return;
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/sendemail', {
+        ids: selectedPlates,
+      });
+
+      alert(response.data.message || 'Email sent successfully!');
+    } catch (err) {
+      console.error('Email sending failed:', err);
+      alert('Failed to send email');
+    }
+  };
+
   const sortIcons = { asc: '▲', desc: '▼' };
 
   return (
@@ -106,19 +139,23 @@ const PlateTable = () => {
       <h2>Detected License Plates</h2>
 
       {selectedPlates.length > 0 && (
-        <button
-          onClick={handleBulkDelete}
-          style={{
-            marginBottom: '10px',
-            background: 'red',
-            color: 'white',
-            padding: '8px 16px',
-            border: 'none',
-            borderRadius: '6px'
-          }}
-        >
-          Delete Selected ({selectedPlates.length})
-        </button>
+        <div style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
+          <button
+            onClick={handleBulkDelete}
+            style={animatedButtonStyle}
+            className="animated-button"
+          >
+            Delete Selected ({selectedPlates.length})
+          </button>
+
+          <button
+            onClick={handleSendEmail}
+            style={animatedButtonStyle}
+            className="animated-button"
+          >
+            Send Email
+          </button>
+        </div>
       )}
 
       <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -274,6 +311,15 @@ const PlateTable = () => {
           </div>
         </div>
       )}
+
+      {/* Add this style tag or put it in your CSS file */}
+      <style>
+        {`
+          .animated-button:active {
+            transform: scale(0.95);
+          }
+        `}
+      </style>
     </div>
   );
 };

@@ -15,7 +15,7 @@ if sys.platform == "win32":
 model = torch.hub.load('yolov5', 'custom', path='best.pt', source='local', force_reload=True)
 
 # === Load image ===
-image_path = '2.jpg'
+image_path = '1.jpg'
 img = cv2.imread(image_path)
 
 # === Save original image ===
