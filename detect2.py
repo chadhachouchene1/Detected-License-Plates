@@ -67,7 +67,7 @@ for det in detections:
     crop_path = os.path.join(plates_folder, plate_filename)
     cv2.imwrite(crop_path, cropped)
 
-    # OCR
+    # OCR !!
     result = ocr_reader.readtext(cropped)
     if result:
         all_text = [d[1].strip() for d in result if d[1].strip()]
@@ -75,7 +75,7 @@ for det in detections:
     else:
         text = 'N/A'
 
-    # Time info
+    # Time infoooo
     csv_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     date, time = csv_timestamp.split(' ')
 
