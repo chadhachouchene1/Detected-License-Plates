@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Eye, Edit, Trash2 } from 'lucide-react';
 
 const PlateTable = () => {
   const [plates, setPlates] = useState([]);
@@ -9,15 +10,27 @@ const PlateTable = () => {
   const [sortOrder, setSortOrder] = useState('asc');
   const [selectedPlates, setSelectedPlates] = useState([]);
 
-  // Button style with animation
   const animatedButtonStyle = {
-    background: '#007bff',
-    color: 'white',
-    padding: '8px 16px',
+    padding: '6px 14px',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
     cursor: 'pointer',
-    transition: 'transform 0.1s ease-in-out',
+    transition: 'transform 0.1s ease-in-out, background 0.2s',
+    fontSize: '14px',
+    fontWeight: '500',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+  };
+
+  const iconButtonStyle = {
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '6px',
+    borderRadius: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'transform 0.2s ease, background 0.2s ease',
   };
 
   const fetchPlates = () => {
@@ -27,18 +40,12 @@ const PlateTable = () => {
   };
 
   useEffect(() => {
-  fetchPlates(); // initial load
+    fetchPlates();
+    const interval = setInterval(() => fetchPlates(), 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const interval = setInterval(() => {
-    fetchPlates(); // fetch every 5 seconds
-  }, 5000); // 5000ms = 5 seconds
-
-  return () => clearInterval(interval); // clean up on unmount
-}, []);
-
-  const toggleSortOrder = () => {
-    setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
-  };
+  const toggleSortOrder = () => setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
 
   const sortedPlates = [...plates].sort((a, b) => {
     const dateA = new Date(`${a.date}T${a.time}`);
@@ -46,25 +53,14 @@ const PlateTable = () => {
     return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
-  const startEditing = (plate) => {
-    setEditingId(plate.id);
-    setNewPlateValue(plate.plate);
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setNewPlateValue('');
-  };
-
+  const startEditing = (plate) => { setEditingId(plate.id); setNewPlateValue(plate.plate); };
+  const cancelEditing = () => { setEditingId(null); setNewPlateValue(''); };
   const saveEdit = async (plate) => {
     try {
       await axios.put(`http://localhost:5000/api/plates/${plate.id}`, { plate: newPlateValue });
       setPlates(prev => prev.map(p => p.id === plate.id ? { ...p, plate: newPlateValue } : p));
       cancelEditing();
-    } catch (error) {
-      console.error('Update failed:', error);
-      alert('Failed to update plate');
-    }
+    } catch (error) { console.error('Update failed:', error); alert('Failed to update plate'); }
   };
 
   const handleDelete = async (plate) => {
@@ -72,254 +68,151 @@ const PlateTable = () => {
       await axios.delete(`http://localhost:5000/api/plates/${plate.id}`);
       setPlates(prev => prev.filter(p => p.id !== plate.id));
       setSelectedPlates(prev => prev.filter(id => id !== plate.id));
-    } catch (error) {
-      console.error('Delete failed:', error);
-      alert('Failed to delete plate');
-    }
+    } catch (error) { console.error('Delete failed:', error); alert('Failed to delete plate'); }
   };
 
-  const handleShow = (plate) => {
-    setShowPlate(plate);
-  };
+  const handleShow = (plate) => setShowPlate(plate);
+  const closeShowCard = () => setShowPlate(null);
 
-  const closeShowCard = () => {
-    setShowPlate(null);
-  };
-
-  const handleSelectPlate = (id) => {
-    setSelectedPlates(prev =>
-      prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedPlates.length === plates.length) {
-      setSelectedPlates([]);
-    } else {
-      setSelectedPlates(plates.map(p => p.id));
-    }
-  };
+  const handleSelectPlate = (id) => setSelectedPlates(prev => prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]);
+  const handleSelectAll = () => setSelectedPlates(selectedPlates.length === plates.length ? [] : plates.map(p => p.id));
 
   const handleBulkDelete = async () => {
     if (selectedPlates.length === 0) return;
-
     try {
-      await axios.post('http://localhost:5000/api/delete-multiple', {
-        ids: selectedPlates
-      });
-
+      await axios.post('http://localhost:5000/api/delete-multiple', { ids: selectedPlates });
       setPlates(prev => prev.filter(p => !selectedPlates.includes(p.id)));
       setSelectedPlates([]);
-    } catch (err) {
-      console.error('Bulk delete failed:', err);
-      alert('Failed to delete selected plates');
-    }
+    } catch (err) { console.error('Bulk delete failed:', err); alert('Failed to delete selected plates'); }
   };
 
-  // ✅ SEND EMAIL FUNCTION
   const handleSendEmail = async () => {
     if (selectedPlates.length === 0) return;
-
     try {
-      const response = await axios.post('http://localhost:5000/api/sendemail', {
-        ids: selectedPlates,
-      });
-
+      const response = await axios.post('http://localhost:5000/api/sendemail', { ids: selectedPlates });
       alert(response.data.message || 'Email sent successfully!');
-    } catch (err) {
-      console.error('Email sending failed:', err);
-      alert('Failed to send email');
-    }
+    } catch (err) { console.error('Email sending failed:', err); alert('Failed to send email'); }
   };
 
   const sortIcons = { asc: '▲', desc: '▼' };
 
   return (
-    <div style={{ padding: '20px', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-      <h2>Detected License Plates</h2>
+    <div style={{ padding: '20px', fontFamily: "Segoe UI, sans-serif", display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {/* Title */}
+      <div style={{ marginBottom: '15px', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '24px', margin: 0, fontWeight: '600', color: '#333' }}>🚗 Detected License Plates</h2>
+        <p style={{ color: '#666', margin: '3px 0 0', fontSize: '14px' }}>Real-time monitoring system</p>
+      </div>
 
+      {/* Bulk actions */}
       {selectedPlates.length > 0 && (
-        <div style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
-          <button
-            onClick={handleBulkDelete}
-            style={animatedButtonStyle}
-            className="animated-button"
-          >
-            Delete Selected ({selectedPlates.length})
-          </button>
-
-          <button
-            onClick={handleSendEmail}
-            style={animatedButtonStyle}
-            className="animated-button"
-          >
-            Send Email
-          </button>
+        <div style={{ marginBottom: '12px', display: 'flex', gap: '10px' }}>
+          <button onClick={handleBulkDelete} style={{ ...animatedButtonStyle, background: '#dc3545', color: 'white' }}>🗑 Delete Selected ({selectedPlates.length})</button>
+          <button onClick={handleSendEmail} style={{ ...animatedButtonStyle, background: '#007bff', color: 'white' }}>✉️ Send Email</button>
         </div>
       )}
 
-      <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead style={{ backgroundColor: '#f0f0f0' }}>
-          <tr>
-            <th>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedPlates.length === plates.length}
-                  onChange={handleSelectAll}
-                />
-                ID
-              </label>
-            </th>
-            <th
-              onClick={toggleSortOrder}
-              style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
-              title="Click to toggle sort by Date then Time"
-            >
-              Date
-              <span style={{ fontSize: '18px', color: '#000' }}>
-                {sortIcons[sortOrder]}
-              </span>
-            </th>
-            <th>Time</th>
-            <th>Plate</th>
-            <th>Plate Image</th>
-            <th>Original Image</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedPlates.map((plate) => (
-            <tr
-              key={plate.id}
-              style={{
-                backgroundColor: selectedPlates.includes(plate.id) ? '#e0f7fa' : 'white',
-                verticalAlign: 'middle'
-              }}
-            >
-              <td>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedPlates.includes(plate.id)}
-                    onChange={() => handleSelectPlate(plate.id)}
-                  />
-                  {plate.id}
-                </label>
-              </td>
-              <td>{plate.date}</td>
-              <td>{plate.time}</td>
-              <td>
-                {editingId === plate.id ? (
-                  <input
-                    type="text"
-                    value={newPlateValue}
-                    onChange={(e) => setNewPlateValue(e.target.value)}
-                    style={{ width: '150px' }}
-                  />
-                ) : (
-                  plate.plate
-                )}
-              </td>
-              <td>
-                <img
-                  src={`http://localhost:5000/plates/${plate.plate_image}`}
-                  alt="plate"
-                  width="120"
-                  style={{ borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}
-                />
-              </td>
-              <td>
-                <img
-                  src={`http://localhost:5000/original_images/${plate.original_image}`}
-                  alt="original"
-                  width="120"
-                  style={{ borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}
-                />
-              </td>
-              <td>
-                {editingId === plate.id ? (
-                  <>
-                    <button onClick={() => saveEdit(plate)}>Save</button>{' '}
-                    <button onClick={cancelEditing}>Cancel</button>
-                  </>
-                ) : (
-                  <>
-                    <button onClick={() => handleShow(plate)}>Show</button>{' '}
-                    <button onClick={() => startEditing(plate)}>Edit</button>{' '}
-                    <button onClick={() => handleDelete(plate)}>Delete</button>
-                  </>
-                )}
-              </td>
+      {/* Table wrapper to center */}
+      <div style={{ maxWidth: '1300px', width: '100%', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 3px 10px rgba(0,0,0,0.08)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '16px' }}>
+          <thead style={{ backgroundColor: '#f8f9fa' }}>
+            <tr>
+              <th style={{ padding: '8px', textAlign: 'left' }}>
+                <input type="checkbox" checked={selectedPlates.length === plates.length} onChange={handleSelectAll} /> ID
+              </th>
+              <th onClick={toggleSortOrder} style={{ padding: '8px', cursor: 'pointer', userSelect: 'none' }}>
+                Date & Time {sortIcons[sortOrder]}
+              </th>
+              <th style={{ padding: '8px' }}>Plate</th>
+              <th style={{ padding: '8px' }}>Plate Image</th>
+              <th style={{ padding: '8px' }}>Original Image</th>
+              <th style={{ padding: '8px' }}>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {sortedPlates.map((plate, i) => {
+              const isSelected = selectedPlates.includes(plate.id);
+              return (
+                <tr key={plate.id} style={{
+                  backgroundColor: isSelected ? '#d0ebff' : i % 2 === 0 ? '#fff' : '#fdfdfd',
+                  borderTop: '1px solid #eee',
+                  transition: 'all 0.3s ease',
+                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                }}>
+                  <td style={{ padding: '8px' }}>
+                    <input type="checkbox" checked={isSelected} onChange={() => handleSelectPlate(plate.id)} /> {plate.id}
+                  </td>
+                  <td style={{ padding: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+                      <span style={{ fontWeight: '600', color: '#333' }}>{plate.date}</span>
+                      <span style={{ fontSize: '13px', color: '#888' }}>{plate.time}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '8px' }}>
+                    {editingId === plate.id ? (
+                      <input type="text" value={newPlateValue} onChange={(e) => setNewPlateValue(e.target.value)} style={{ width: '100px' }} />
+                    ) : <span style={{ fontWeight: '500' }}>{plate.plate}</span>}
+                  </td>
+                  <td style={{ padding: '8px' }}>
+                    <img src={`http://localhost:5000/plates/${plate.plate_image}`} alt="plate" width="100" style={{ borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+                  </td>
+                  <td style={{ padding: '8px' }}>
+                    <img src={`http://localhost:5000/original_images/${plate.original_image}`} alt="original" width="100" style={{ borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+                  </td>
+                  <td style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                    {editingId === plate.id ? (
+                      <>
+                        <button style={{ ...animatedButtonStyle, background: '#28a745', color: 'white' }} onClick={() => saveEdit(plate)}>Save</button>
+                        <button style={{ ...animatedButtonStyle, background: '#6c757d', color: 'white' }} onClick={cancelEditing}>Cancel</button>
+                      </>
+                    ) : (
+                      <>
+                        <button style={iconButtonStyle} onClick={() => handleShow(plate)} title="Show"><Eye size={20} color="#17a2b8" /></button>
+                        <button style={iconButtonStyle} onClick={() => startEditing(plate)} title="Edit"><Edit size={20} color="#ffc107" /></button>
+                        <button style={iconButtonStyle} onClick={() => handleDelete(plate)} title="Delete"><Trash2 size={20} color="#dc3545" /></button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
+      {/* Modal */}
       {showPlate && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex',
-          justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px'
+          justifyContent: 'center', alignItems: 'center', zIndex: 9999
         }}>
           <div style={{
             backgroundColor: 'white', borderRadius: '12px',
-            maxWidth: '500px', width: '100%', padding: '20px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)', position: 'relative',
-            textAlign: 'center',
+            maxWidth: '600px', width: '100%', padding: '20px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)', textAlign: 'center'
           }}>
-            <h3 style={{ marginBottom: '20px' }}>Plate Details (ID: {showPlate.id})</h3>
-
-            <div style={{ marginBottom: '15px' }}>
-              <strong>Date:</strong> {showPlate.date} <br />
-              <strong>Time:</strong> {showPlate.time}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '20px' }}>
+            <h3>Plate Details (ID: {showPlate.id})</h3>
+            <p><b>Date:</b> {showPlate.date} <br /><b>Time:</b> {showPlate.time}</p>
+            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', margin: '20px 0' }}>
               <div>
                 <h4>Original Image</h4>
-                <img
-                  src={`http://localhost:5000/original_images/${showPlate.original_image}`}
-                  alt="Original"
-                  style={{ maxWidth: '200px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}
-                />
+                <img src={`http://localhost:5000/original_images/${showPlate.original_image}`} alt="original" width="200" style={{ borderRadius: '8px' }} />
               </div>
               <div>
                 <h4>Plate Image</h4>
-                <img
-                  src={`http://localhost:5000/plates/${showPlate.plate_image}`}
-                  alt="Plate"
-                  style={{ maxWidth: '200px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }}
-                />
+                <img src={`http://localhost:5000/plates/${showPlate.plate_image}`} alt="plate" width="200" style={{ borderRadius: '8px' }} />
               </div>
             </div>
-
-            <button
-              onClick={closeShowCard}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: '#007bff',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              Close
-            </button>
+            <button onClick={closeShowCard} style={{ ...animatedButtonStyle, background: '#007bff', color: 'white', marginTop: '10px' }}>Close</button>
           </div>
         </div>
       )}
 
-      {/* Add this style tag or put it in your CSS file */}
-      <style>
-        {`
-          .animated-button:active {
-            transform: scale(0.95);
-          }
-        `}
-      </style>
+      {/* Hover animation */}
+      <style>{`
+        .animated-button:active { transform: scale(0.95); }
+      `}</style>
     </div>
   );
 };
